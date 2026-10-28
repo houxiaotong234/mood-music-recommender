@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Mood Music Recommender</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      display: grid;
+      place-items: center;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .container {
+      width: min(800px, 100%);
+      padding: 32px;
+      text-align: center;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(10px);
+    }
+
+    .language-button {
+      float: right;
+      min-height: 36px;
+      padding: 7px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      border-radius: 10px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    .language-button:hover,
+    .language-button:focus-visible {
+      background: rgba(0, 0, 0, 0.35);
+      outline: 2px solid #ffd166;
+      outline-offset: 2px;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .moods {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      margin: 28px 0;
+    }
+
+    .mood-button {
+      width: 105px;
+      min-height: 108px;
+      padding: 10px;
+      border: 3px solid transparent;
+      border-radius: 18px;
+      color: #222;
+      background: #fff;
+      cursor: pointer;
+      transition:
+        transform 0.2s,
+        border-color 0.2s,
+        background-color 0.2s;
+    }
+
+    .mood-button:hover,
+    .mood-button:focus-visible {
+      transform: translateY(-5px);
+      border-color: #ffd166;
+      outline: none;
+    }
+
+    .mood-button.selected {
+      border-color: #ffd166;
+      background: #fff3bd;
+      transform: translateY(-5px);
+    }
+
+    .emoji {
+      display: block;
+      font-size: 42px;
+    }
+
+    .mood-name {
+      display: block;
+      margin-top: 6px;
+      font-weight: bold;
+    }
+
+    .checkmark {
+      display: block;
+      min-height: 18px;
+      margin-top: 4px;
+      color: #157347;
+      font-weight: bold;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: end;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .number-control {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      text-align: left;
+      font-weight: bold;
+    }
+
+    select,
+    .action-button {
+      min-height: 44px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    select {
+      color: #222;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .action-button {
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .action-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .recommend-button {
+      color: #222;
+      background: #ffd166;
+    }
+
+    .clear-button {
+      color: #fff;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 0 0 16px;
+      font-weight: bold;
+    }
+
+    .error {
+      color: #fff3bd;
+    }
+
+    .recommendations {
+      display: grid;
+      gap: 18px;
+      text-align: left;
+    }
+
+    .mood-results {
+      padding: 20px;
+      border-radius: 16px;
+      color: #222;
+      background: #fff;
+    }
+
+    .mood-results h2 {
+      margin: 0 0 14px;
+      color: #6441a5;
+    }
+
+    .song-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding-left: 28px;
+    }
+
+    .song-list li {
+      padding-left: 4px;
+    }
+
+    .song-actions {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .song-action,
+    .utility-button {
+      padding: 5px 8px;
+      border: 0;
+      border-radius: 7px;
+      color: #222;
+      background: #ffd166;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.82rem;
+    }
+
+    .song-action:hover,
+    .utility-button:hover {
+      filter: brightness(0.95);
+    }
+
+    .song-action.favorite {
+      color: #fff;
+      background: #6441a5;
+    }
+
+    .utility-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 0 0 20px;
+    }
+
+    .history-panel {
+      display: none;
+      margin-bottom: 18px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      color: #222;
+      background: rgba(255, 255, 255, 0.9);
+      text-align: left;
+    }
+
+    .history-panel.visible { display: block; }
+    .history-panel h2 { margin: 0 0 8px; color: #6441a5; font-size: 1.05rem; }
+    .history-panel ul { margin: 0; padding-left: 20px; }
+
+    .song-title {
+      font-weight: bold;
+    }
+
+    .artist {
+      color: #555;
+    }
+
+    @media (max-width: 540px) {
+      .container {
+        padding: 24px 16px;
+      }
+
+      .mood-button {
+        width: 96px;
+      }
+
+      .controls,
+      .number-control,
+      select,
+      .action-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <button class="language-button" id="languageButton" type="button">中文</button>
+    <h1 data-i18n="title">Mood Music Recommender</h1>
+    <p data-i18n="intro">Select one or more moods, then choose how many songs you want per mood.</p>
+
+    <div class="moods" aria-label="Select moods">
+      <button class="mood-button" data-mood="happy" aria-pressed="false">
+        <span class="emoji">😊</span>
+        <span class="mood-name" data-mood-label="happy">Happy</span>
+        <span class="checkmark" aria-hidden="true"></span>
+      </button>
+
+      <button class="mood-button" data-mood="sad" aria-pressed="false">
+        <span class="emoji">😢</span>
+        <span class="mood-name" data-mood-label="sad">Sad</span>
+        <span class="checkmark" aria-hidden="true"></span>
+      </button>
+
+      <button class="mood-button" data-mood="energetic" aria-pressed="false">
+        <span class="emoji">⚡</span>
+        <span class="mood-name" data-mood-label="energetic">Energetic</span>
+        <span class="checkmark" aria-hidden="true"></span>
+      </button>
+
+      <button class="mood-button" data-mood="calm" aria-pressed="false">
+        <span class="emoji">😌</span>
+        <span class="mood-name" data-mood-label="calm">Calm</span>
+        <span class="checkmark" aria-hidden="true"></span>
+      </button>
+
+      <button class="mood-button" data-mood="romantic" aria-pressed="false">
+        <span class="emoji">😍</span>
+        <span class="mood-name" data-mood-label="romantic">Romantic</span>
+        <span class="checkmark" aria-hidden="true"></span>
+      </button>
+
+      <button class="mood-button" data-mood="focus" aria-pressed="false">
+        <span class="emoji">🎯</span>
+        <span class="mood-name" data-mood-label="focus">Focus</span>
+        <span class="checkmark" aria-hidden="true"></span>
+      </button>
+
+      <button class="mood-button" data-mood="nostalgic" aria-pressed="false">
+        <span class="emoji">📻</span>
+        <span class="mood-name" data-mood-label="nostalgic">Nostalgic</span>
+        <span class="checkmark" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div class="controls">
+      <label class="number-control" for="songCount">
+        <span data-i18n="songsPerMood">Songs per mood</span>
+        <select id="songCount">
+          <option value="1" data-i18n="oneSong">1 song</option>
+          <option value="2" data-i18n="twoSongs">2 songs</option>
+          <option value="3" data-i18n="threeSongs">3 songs</option>
+          <option value="4" data-i18n="fourSongs">4 songs</option>
+          <option value="5" data-i18n="fiveSongs">5 songs</option>
+        </select>
+      </label>
+
+      <button class="action-button recommend-button" id="recommendButton">
+        <span data-i18n="recommend">Recommend Songs</span>
+      </button>
+
+      <button class="action-button clear-button" id="clearButton">
+        <span data-i18n="clear">Clear Selection</span>
+      </button>
+    </div>
+
+    <div class="utility-row">
+      <button class="utility-button" id="timeButton" type="button" data-i18n="timeRecommend">Recommend for this time</button>
+      <button class="utility-button" id="mixButton" type="button" data-i18n="mixSongs">Chinese + English</button>
+      <button class="utility-button" id="historyButton" type="button" data-i18n="history">Recommendation history</button>
+      <button class="utility-button" id="favoritesButton" type="button" data-i18n="favorites">My favorites</button>
+    </div>
+
+    <section class="history-panel" id="historyPanel" aria-live="polite"></section>
+
+    <p class="status" id="status" aria-live="polite">
+      <span data-i18n="noMoods">No moods selected.</span>
+    </p>
+
+    <section
+      class="recommendations"
+      id="recommendations"
+      aria-label="Song recommendations"
+      aria-live="polite"
+    ></section>
+  </main>
+
+  <script>
+    const songs = {
+      happy: [
+        { title: "Happy", artist: "Pharrell Williams" },
+        { title: "Walking on Sunshine", artist: "Katrina and the Waves" },
+        { title: "Good as Hell", artist: "Lizzo" },
+        { title: "Can't Stop the Feeling!", artist: "Justin Timberlake" },
+        { title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars" },
+        { title: "September", artist: "Earth, Wind & Fire" },
+        { title: "Lovely Day", artist: "Bill Withers" },
+        { title: "Best Day of My Life", artist: "American Authors" },
+        { title: "On Top of the World", artist: "Imagine Dragons" },
+        { title: "I Gotta Feeling", artist: "The Black Eyed Peas" },
+        { title: "Dancing Queen", artist: "ABBA" },
+        { title: "Don't Worry, Be Happy", artist: "Bobby McFerrin" },
+        { title: "Here Comes the Sun", artist: "The Beatles" },
+        { title: "Good Vibrations", artist: "The Beach Boys" },
+        { title: "Shake It Off", artist: "Taylor Swift" },
+        { title: "Sunroof", artist: "Nicky Youre and dazy" },
+        { title: "Levitating", artist: "Dua Lipa" },
+        { title: "Three Little Birds", artist: "Bob Marley & The Wailers" },
+        { title: "Mr. Blue Sky", artist: "Electric Light Orchestra" },
+        { title: "I'm a Believer", artist: "The Monkees" }
+      ],
+
+      sad: [
+        { title: "Someone Like You", artist: "Adele" },
+        { title: "Fix You", artist: "Coldplay" },
+        { title: "Skinny Love", artist: "Bon Iver" },
+        { title: "The Night We Met", artist: "Lord Huron" },
+        { title: "All I Want", artist: "Kodaline" },
+        { title: "Nothing Compares 2 U", artist: "Sinéad O'Connor" },
+        { title: "Everybody Hurts", artist: "R.E.M." },
+        { title: "Hurt", artist: "Johnny Cash" },
+        { title: "Liability", artist: "Lorde" },
+        { title: "when the party's over", artist: "Billie Eilish" },
+        { title: "Say Something", artist: "A Great Big World and Christina Aguilera" },
+        { title: "I Can't Make You Love Me", artist: "Bonnie Raitt" },
+        { title: "Jealous", artist: "Labrinth" },
+        { title: "Back to Black", artist: "Amy Winehouse" },
+        { title: "Lost on You", artist: "LP" },
+        { title: "Let Her Go", artist: "Passenger" },
+        { title: "Breakeven", artist: "The Script" },
+        { title: "drivers license", artist: "Olivia Rodrigo" },
+        { title: "Someone You Loved", artist: "Lewis Capaldi" },
+        { title: "Fourth of July", artist: "Sufjan Stevens" }
+      ],
+
+      energetic: [
+        { title: "Don't Stop Me Now", artist: "Queen" },
+        { title: "Eye of the Tiger", artist: "Survivor" },
+        { title: "Stronger (What Doesn't Kill You)", artist: "Kelly Clarkson" },
+        { title: "Titanium", artist: "David Guetta ft. Sia" },
+        { title: "Levels", artist: "Avicii" },
+        { title: "Pump It", artist: "The Black Eyed Peas" },
+        { title: "Lose Yourself", artist: "Eminem" },
+        { title: "Can't Hold Us", artist: "Macklemore & Ryan Lewis ft. Ray Dalton" },
+        { title: "Blinding Lights", artist: "The Weeknd" },
+        { title: "Physical", artist: "Dua Lipa" },
+        { title: "Born to Run", artist: "Bruce Springsteen" },
+        { title: "Thunderstruck", artist: "AC/DC" },
+        { title: "Party Rock Anthem", artist: "LMFAO" },
+        { title: "Bang Bang", artist: "Jessie J, Ariana Grande and Nicki Minaj" },
+        { title: "Run the World (Girls)", artist: "Beyoncé" },
+        { title: "High Hopes", artist: "Panic! at the Disco" },
+        { title: "The Pretender", artist: "Foo Fighters" },
+        { title: "Sandstorm", artist: "Darude" },
+        { title: "Turn Down for What", artist: "DJ Snake and Lil Jon" },
+        { title: "Firework", artist: "Katy Perry" }
+      ],
+
+      calm: [
+        { title: "Weightless", artist: "Marconi Union" },
+        { title: "Holocene", artist: "Bon Iver" },
+        { title: "Bloom", artist: "The Paper Kites" },
+        { title: "Banana Pancakes", artist: "Jack Johnson" },
+        { title: "Better Together", artist: "Jack Johnson" },
+        { title: "River Flows in You", artist: "Yiruma" },
+        { title: "Clair de Lune", artist: "Claude Debussy" },
+        { title: "Sunset Lover", artist: "Petit Biscuit" },
+        { title: "Heartbeats", artist: "José González" },
+        { title: "Come Away with Me", artist: "Norah Jones" },
+        { title: "Pink Moon", artist: "Nick Drake" },
+        { title: "Mystery of Love", artist: "Sufjan Stevens" },
+        { title: "Sea of Love", artist: "Cat Power" },
+        { title: "The Only Living Boy in New York", artist: "Simon & Garfunkel" },
+        { title: "re: Stacks", artist: "Bon Iver" },
+        { title: "To Build a Home", artist: "The Cinematic Orchestra" },
+        { title: "Dreams", artist: "Fleetwood Mac" },
+        { title: "Harvest Moon", artist: "Neil Young" },
+        { title: "Aqueous Transmission", artist: "Incubus" },
+        { title: "Nuvole Bianche", artist: "Ludovico Einaudi" }
+      ],
+
+      romantic: [
+        { title: "Perfect", artist: "Ed Sheeran" },
+        { title: "All of Me", artist: "John Legend" },
+        { title: "At Last", artist: "Etta James" },
+        { title: "Lover", artist: "Taylor Swift" },
+        { title: "Thinking Out Loud", artist: "Ed Sheeran" },
+        { title: "Can't Help Falling in Love", artist: "Elvis Presley" },
+        { title: "A Thousand Years", artist: "Christina Perri" },
+        { title: "Make You Feel My Love", artist: "Adele" },
+        { title: "Just the Way You Are", artist: "Bruno Mars" },
+        { title: "Adore You", artist: "Harry Styles" },
+        { title: "Until I Found You", artist: "Stephen Sanchez" },
+        { title: "Let's Stay Together", artist: "Al Green" },
+        { title: "Your Song", artist: "Elton John" },
+        { title: "Kiss Me", artist: "Sixpence None the Richer" },
+        { title: "You Are the Best Thing", artist: "Ray LaMontagne" },
+        { title: "Beyond", artist: "Leon Bridges" },
+        { title: "Die with a Smile", artist: "Lady Gaga and Bruno Mars" },
+        { title: "La Vie en rose", artist: "Édith Piaf" },
+        { title: "Unchained Melody", artist: "The Righteous Brothers" },
+        { title: "Something", artist: "The Beatles" }
+      ]
+    };
+
+    const moodDetails = {
+      happy: { en: "Happy", zh: "开心", emoji: "😊" },
+      sad: { en: "Sad", zh: "悲伤", emoji: "😢" },
+      energetic: { en: "Energetic", zh: "活力", emoji: "⚡" },
+      calm: { en: "Calm", zh: "平静", emoji: "😌" },
+      romantic: { en: "Romantic", zh: "浪漫", emoji: "😍" }
+    };
+
+    const chineseSongs = {
+      happy: [
+        { title: "日不落", artist: "蔡依林" },
+        { title: "小幸运", artist: "田馥甄" },
+        { title: "庆祝", artist: "杨丞琳" },
+        { title: "恋爱ing", artist: "五月天" },
+        { title: "甜甜的", artist: "周杰伦" }
+      ],
+      sad: [
+        { title: "后来", artist: "刘若英" },
+        { title: "说好的幸福呢", artist: "周杰伦" },
+        { title: "可惜没如果", artist: "林俊杰" },
+        { title: "体面", artist: "于文文" },
+        { title: "我怀念的", artist: "孙燕姿" }
+      ],
+      energetic: [
+        { title: "倔强", artist: "五月天" },
+        { title: "最重要的决定", artist: "范玮琪" },
+        { title: "逆战", artist: "张杰" },
+        { title: "奔跑", artist: "羽泉" },
+        { title: "我的未来不是梦", artist: "张雨生" }
+      ],
+      calm: [
+        { title: "南山南", artist: "马頔" },
+        { title: "平凡之路", artist: "朴树" },
+        { title: "安静", artist: "周杰伦" },
+        { title: "云烟成雨", artist: "房东的猫" },
+        { title: "旅行的意义", artist: "陈绮贞" }
+      ],
+      romantic: [
+        { title: "告白气球", artist: "周杰伦" },
+        { title: "暖暖", artist: "梁静茹" },
+        { title: "就是爱你", artist: "陶喆" },
+        { title: "唯一", artist: "王力宏" },
+        { title: "遇见", artist: "孙燕姿" }
+      ]
+    };
+
+    Object.assign(songs, {
+      focus: [
+        { title: "Weightless", artist: "Marconi Union" },
+        { title: "Experience", artist: "Ludovico Einaudi" },
+        { title: "Clair de Lune", artist: "Claude Debussy" },
+        { title: "Intro", artist: "The xx" },
+        { title: "Aqueous Transmission", artist: "Incubus" }
+      ],
+      nostalgic: [
+        { title: "Yesterday", artist: "The Beatles" },
+        { title: "Take Me Home, Country Roads", artist: "John Denver" },
+        { title: "Time After Time", artist: "Cyndi Lauper" },
+        { title: "Wake Me Up Before You Go-Go", artist: "Wham!" },
+        { title: "Dancing Queen", artist: "ABBA" }
+      ]
+    });
+    Object.assign(chineseSongs, {
+      focus: [
+        { title: "夜曲", artist: "周杰伦" },
+        { title: "天空之城", artist: "久石让" },
+        { title: "风居住的街道", artist: "矶村由纪子" },
+        { title: "Summer", artist: "久石让" },
+        { title: "River Flows in You", artist: "Yiruma" }
+      ],
+      nostalgic: [
+        { title: "那些年", artist: "胡夏" },
+        { title: "晴天", artist: "周杰伦" },
+        { title: "匆匆那年", artist: "王菲" },
+        { title: "童年", artist: "罗大佑" },
+        { title: "同桌的你", artist: "老狼" }
+      ]
+    });
+
+    const translations = {
+      en: {
+        title: "Mood Music Recommender", intro: "Select one or more moods, then choose how many songs you want per mood.",
+        songsPerMood: "Songs per mood", oneSong: "1 song", twoSongs: "2 songs", threeSongs: "3 songs", fourSongs: "4 songs", fiveSongs: "5 songs",
+        recommend: "Recommend Songs", clear: "Clear Selection", noMoods: "No moods selected.", selected: "selected", showing: "Showing", across: "across", moods: "moods", mood: "mood", song: "song", songs: "songs", selectPrompt: "Please select at least one mood.", selectedMark: "✓ Selected", languageButton: "中文"
+      },
+      zh: {
+        title: "心情音乐推荐", intro: "选择一个或多个心情，然后选择每种心情想听的歌曲数量。",
+        songsPerMood: "每种心情的歌曲数", oneSong: "1 首", twoSongs: "2 首", threeSongs: "3 首", fourSongs: "4 首", fiveSongs: "5 首",
+        recommend: "推荐歌曲", clear: "清除选择", noMoods: "尚未选择心情。", selected: "种心情已选择", showing: "正在显示", across: "涵盖", moods: "种心情", mood: "种心情", song: "首推荐", songs: "首推荐", selectPrompt: "请至少选择一种心情。", selectedMark: "✓ 已选择", languageButton: "English"
+      }
+    };
+    Object.assign(moodDetails, {
+      focus: { en: "Focus", zh: "专注", emoji: "🎯" },
+      nostalgic: { en: "Nostalgic", zh: "怀旧", emoji: "📻" }
+    });
+    Object.assign(translations.en, { timeRecommend: "Recommend for this time", mixSongs: "Chinese + English", history: "Recommendation history", favorites: "My favorites", search: "Search", preview: "Preview", save: "Favorite", saved: "Saved", remove: "Remove", historyTitle: "Recent recommendations", favoritesTitle: "My favorites", emptyHistory: "No recommendations yet.", emptyFavorites: "No favorites saved yet." });
+    Object.assign(translations.zh, { timeRecommend: "按现在的时间推荐", mixSongs: "中英混合", history: "推荐历史", favorites: "我的收藏", search: "搜索歌曲", preview: "试听搜索", save: "收藏", saved: "已收藏", remove: "移除", historyTitle: "最近推荐", favoritesTitle: "我的收藏", emptyHistory: "还没有推荐记录。", emptyFavorites: "还没有收藏歌曲。" });
+
+    const selectedMoods = new Set();
+
+    const moodButtons = document.querySelectorAll(".mood-button");
+    const songCount = document.getElementById("songCount");
+    const recommendButton = document.getElementById("recommendButton");
+    const clearButton = document.getElementById("clearButton");
+    const recommendations = document.getElementById("recommendations");
+    const status = document.getElementById("status");
+    const languageButton = document.getElementById("languageButton");
+    const timeButton = document.getElementById("timeButton");
+    const mixButton = document.getElementById("mixButton");
+    const historyButton = document.getElementById("historyButton");
+    const favoritesButton = document.getElementById("favoritesButton");
+    const historyPanel = document.getElementById("historyPanel");
+    let language = "en";
+    let mixedMode = false;
+    const favorites = JSON.parse(localStorage.getItem("moodMusicFavorites") || "[]");
+    const history = JSON.parse(localStorage.getItem("moodMusicHistory") || "[]");
+
+    function text(key) { return translations[language][key]; }
+    function moodLabel(mood) { return moodDetails[mood][language === "zh" ? "zh" : "en"]; }
+
+    function applyLanguage() {
+      document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        element.textContent = text(element.dataset.i18n);
+      });
+      document.querySelectorAll("[data-mood-label]").forEach((element) => {
+        element.textContent = moodLabel(element.dataset.moodLabel);
+      });
+      languageButton.textContent = text("languageButton");
+      timeButton.textContent = text("timeRecommend");
+      mixButton.textContent = mixedMode ? `${text("mixSongs")} ✓` : text("mixSongs");
+      historyButton.textContent = text("history");
+      favoritesButton.textContent = text("favorites");
+      moodButtons.forEach((button) => {
+        button.querySelector(".checkmark").textContent = selectedMoods.has(button.dataset.mood) ? text("selectedMark") : "";
+      });
+      updateStatus();
+    }
+
+    languageButton.addEventListener("click", () => {
+      language = language === "en" ? "zh" : "en";
+      applyLanguage();
+    });
+
+    function persist() {
+      localStorage.setItem("moodMusicFavorites", JSON.stringify(favorites));
+      localStorage.setItem("moodMusicHistory", JSON.stringify(history.slice(0, 30)));
+    }
+
+    function songKey(song) { return `${song.title}|||${song.artist}`; }
+    function isFavorite(song) { return favorites.some((item) => songKey(item) === songKey(song)); }
+    function openSearch(song, site) {
+      const query = encodeURIComponent(`${song.title} ${song.artist}`);
+      const url = site === "qq" ? `https://y.qq.com/n/ryqq/search?w=${query}` : `https://music.163.com/#/search/m/?s=${query}&type=1`;
+      window.open(url, "_blank", "noopener");
+    }
+    function toggleFavorite(song, button) {
+      const index = favorites.findIndex((item) => songKey(item) === songKey(song));
+      if (index >= 0) favorites.splice(index, 1); else favorites.unshift(song);
+      persist();
+      button.textContent = isFavorite(song) ? `★ ${text("saved")}` : `☆ ${text("save")}`;
+    }
+    function showPanel(type) {
+      const items = type === "favorites" ? favorites : history;
+      historyPanel.classList.add("visible");
+      historyPanel.replaceChildren();
+      const heading = document.createElement("h2");
+      heading.textContent = type === "favorites" ? text("favoritesTitle") : text("historyTitle");
+      historyPanel.appendChild(heading);
+      if (!items.length) { historyPanel.appendChild(document.createTextNode(type === "favorites" ? text("emptyFavorites") : text("emptyHistory"))); return; }
+      const list = document.createElement("ul");
+      items.slice(0, 12).forEach((song) => { const item = document.createElement("li"); item.textContent = `${song.title} — ${song.artist}`; list.appendChild(item); });
+      historyPanel.appendChild(list);
+    }
+
+    historyButton.addEventListener("click", () => showPanel("history"));
+    favoritesButton.addEventListener("click", () => showPanel("favorites"));
+    mixButton.addEventListener("click", () => { mixedMode = !mixedMode; applyLanguage(); });
+    timeButton.addEventListener("click", () => {
+      const hour = new Date().getHours();
+      selectedMoods.clear();
+      selectedMoods.add(hour < 7 || hour >= 22 ? "calm" : hour < 12 ? "focus" : hour < 18 ? "energetic" : "happy");
+      moodButtons.forEach((button) => { const active = selectedMoods.has(button.dataset.mood); button.classList.toggle("selected", active); button.setAttribute("aria-pressed", String(active)); button.querySelector(".checkmark").textContent = active ? text("selectedMark") : ""; });
+      updateStatus();
+      recommendButton.click();
+    });
+
+    // Select or deselect multiple moods.
+    moodButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const mood = button.dataset.mood;
+
+        if (selectedMoods.has(mood)) {
+          selectedMoods.delete(mood);
+          button.classList.remove("selected");
+          button.setAttribute("aria-pressed", "false");
+          button.querySelector(".checkmark").textContent = "";
+        } else {
+          selectedMoods.add(mood);
+          button.classList.add("selected");
+          button.setAttribute("aria-pressed", "true");
+          button.querySelector(".checkmark").textContent = text("selectedMark");
+        }
+
+        updateStatus();
+      });
+    });
+
+    // Return a requested number of random, non-repeating items.
+    function getRandomSongs(songList, amount) {
+      const shuffled = [...songList];
+
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const randomIndex = Math.floor(Math.random() * (i + 1));
+
+        [shuffled[i], shuffled[randomIndex]] =
+          [shuffled[randomIndex], shuffled[i]];
+      }
+
+      return shuffled.slice(0, amount);
+    }
+
+    function updateStatus() {
+      status.classList.remove("error");
+
+      if (selectedMoods.size === 0) {
+        status.textContent = text("noMoods");
+        return;
+      }
+
+      const names = [...selectedMoods].map(
+        (mood) => `${moodDetails[mood].emoji} ${moodLabel(mood)}`
+      );
+
+      status.textContent =
+        `${selectedMoods.size} ${text("selected")}: ` +
+        names.join(", ");
+    }
+
+    recommendButton.addEventListener("click", () => {
+      recommendations.replaceChildren();
+
+      if (selectedMoods.size === 0) {
+        status.textContent = text("selectPrompt");
+        status.classList.add("error");
+        return;
+      }
+
+      const amount = Number(songCount.value);
+
+      selectedMoods.forEach((mood) => {
+        const sourceSongs = mixedMode ? [...chineseSongs[mood], ...songs[mood]] : language === "zh" ? chineseSongs[mood] : songs[mood];
+        const chosenSongs = getRandomSongs(sourceSongs, amount);
+        const section = document.createElement("article");
+        const heading = document.createElement("h2");
+        const list = document.createElement("ol");
+
+        section.className = "mood-results";
+        list.className = "song-list";
+
+        heading.textContent =
+          `${moodDetails[mood].emoji} ${moodLabel(mood)}`;
+
+        chosenSongs.forEach((song) => {
+          const item = document.createElement("li");
+          const title = document.createElement("span");
+          const artist = document.createElement("span");
+          const actions = document.createElement("span");
+          const searchButton = document.createElement("button");
+          const previewButton = document.createElement("button");
+          const favoriteButton = document.createElement("button");
+
+          title.className = "song-title";
+          artist.className = "artist";
+
+          title.textContent = song.title;
+          artist.textContent = ` — ${song.artist}`;
+
+          actions.className = "song-actions";
+          searchButton.className = "song-action";
+          searchButton.type = "button";
+          searchButton.textContent = `♫ ${text("search")}`;
+          searchButton.addEventListener("click", () => openSearch(song, "qq"));
+          previewButton.className = "song-action";
+          previewButton.type = "button";
+          previewButton.textContent = `▶ ${text("preview")}`;
+          previewButton.addEventListener("click", () => openSearch(song, "163"));
+          favoriteButton.className = `song-action${isFavorite(song) ? " favorite" : ""}`;
+          favoriteButton.type = "button";
+          favoriteButton.textContent = isFavorite(song) ? `★ ${text("saved")}` : `☆ ${text("save")}`;
+          favoriteButton.addEventListener("click", () => toggleFavorite(song, favoriteButton));
+          actions.append(searchButton, previewButton, favoriteButton);
+
+          item.append(title, artist, actions);
+          list.appendChild(item);
+          history.unshift({ ...song, mood, recommendedAt: Date.now() });
+        });
+
+        section.append(heading, list);
+        recommendations.appendChild(section);
+      });
+
+      const total = selectedMoods.size * amount;
+
+      status.classList.remove("error");
+      status.textContent = `${text("showing")} ${total} ${total === 1 ? text("song") : text("songs")} ${text("across")} ${selectedMoods.size} ${text("moods")}.`;
+      persist();
+      historyButton.textContent = text("history");
+    });
+
+    clearButton.addEventListener("click", () => {
+      selectedMoods.clear();
+      recommendations.replaceChildren();
+
+      moodButtons.forEach((button) => {
+        button.classList.remove("selected");
+        button.setAttribute("aria-pressed", "false");
+        button.querySelector(".checkmark").textContent = "";
+      });
+
+      updateStatus();
+    });
+  </script>
+</body>
+</html>
